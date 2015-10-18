@@ -16,6 +16,8 @@ def processFile(filepath):
 
     content = fp.read()
 
+
+
     def liczbaRoznychElementowListy(lista):
         liczba=0
         ilosc=0
