@@ -5,6 +5,56 @@ import os
 import sys
 import re
 import codecs
+from itertools import izip_longest
+
+
+# class SentenceParser(object):
+#     #ustawia pierwotny stan obiektu
+#     #self - referencja na biezacy obiekt (jawnie, inaczej niz w Javie)
+#     def __init__(self):
+#         pass
+#
+#     def parse(self):
+
+def make_pairs(values):
+    return list(izip_longest(values[::2], values[1::2], fillvalue=""))
+
+def is_ends_with_shortcut(text):
+    return " " in text[-4:]
+
+def parse_sentences(content):
+    r = re.compile(r'([.!?]|\n)+')
+    parts = r.split(content)
+    pairs = make_pairs(parts)
+    buffor = "" #skladujemy rzeczy ktore moga byc zdaniem (talerz)
+    ends_with_shortcut = False
+    results = []
+
+    for part, separator in pairs:
+
+        if separator == ".":
+            #Patrzymy:
+            #0. Czy ma cos na talerzu? Jesli tak to przetwarzamy kolejny part (jestesmy w nim)
+            #1. Jesli koncze sie skrotem to kontynuujemy
+            # Tak czy siak dodajemy cos na talerz
+            if buffor and (part.strip() and (part.strip()[0].isupper() or not ends_with_shortcut)):
+                results.append(buffor)
+                buffor = ""
+
+            buffor += part + separator
+            ends_with_shortcut = is_ends_with_shortcut(part)
+        # Wiemy ze mamy [!?\n], dajemy na talerz i od razu sciagamy
+        else:
+            results.append(buffor+part+separator)
+            buffor = ""
+            ends_with_shortcut = False #jak konczy sie np. wykrzyknikiem
+
+        #niezaleznie dla ktorego warunku
+        #chcemy wiedziec
+        #ends_with_shortcut = is_ends_with_shortcut(part)
+
+    results.append(buffor)
+    return filter(bool, results)
 
 def list_unique_counter(content, pattern):
     r = re.compile(pattern)
@@ -16,6 +66,24 @@ def list_unique_counter(content, pattern):
 
     return counts
 
+# from (year - day - month) to (day - month - year)
+def convert_data_format(dates_in_format_YDM):
+    converted_dates = []
+    for single_date in range(len(dates_in_format_YDM)):
+        converted_dates += [((dates_in_format_YDM[single_date][1]),
+                             (dates_in_format_YDM[single_date][2]),
+                             (dates_in_format_YDM[single_date][0]))]
+    return converted_dates
+
+def counts_unique_dates(dates_in_format_DMY, dates_in_format_YDM):
+    all_dates = dates_in_format_DMY + convert_data_format(dates_in_format_YDM)
+    unique_words = 0
+
+    if all_dates:
+        unique_words = set(all_dates)
+        counts = len(unique_words)
+
+    return counts
 
 
 def processFile(filepath):
@@ -37,11 +105,12 @@ def processFile(filepath):
     section_description = section_description_pattern.group(1)
 
     #KEY WORDS
-    key_words = re.findall(r'<META NAME="KLUCZOWE_\d+" CONTENT="(.*)">', content)
+    key_words = re.findall(r'<META NAME="KLUCZOWE_\d+" CONTENT="(.+)">', content)
 
     #EMAILS
     email_pattern = r'([\w-]+)(\.\w+)*@(\w+)(-\w+)*\.[a-zA-Z0-9]+(-\w+)*(\.[a-zA-Z]+(-\w+)*)*'
-    email_counts = list_unique_counter(content, email_pattern)
+    #email_counts = list_unique_counter(content, email_pattern)
+    email_counts = list_unique_counter(' '.join(section_P), email_pattern)
 
     #SHORTCUTS
     shortcut_pattern = r'(\s[a-zA-Z]{1,3}\.)'
@@ -56,54 +125,14 @@ def processFile(filepath):
     integer_counts = list_unique_counter(' '.join(section_P), integer_pattern)
 
     #SENTENCES
-    sentences_pattern = r'([\dA-ZĄĆĘŃÓŚŁŻŹ]([A-ZĄĆĘŃÓŚŁŻŹa-ząćęńóśżłź\s,\|\)\/\-\+\=\(\*&^%\$#@!\d]*|(\s[a-zA-Z]{1,3}\.\s))+)'
-    r = re.compile(sentences_pattern)
-    sentences_list = r.findall(' '.join(section_P))
-    sentences_counts = len(sentences_list)
+    sentences_counts = len(parse_sentences(' '.join(section_P)))
 
-    #DATES
-    ###########################################
-    def poprawnaDataDMR(listaDMR):
-        lista=[]
-        for i in listaDMR:
-            if(u'0'<i[1]<=u'12'): #jesli miesiac ok
-                if(i[1]==u'02' or i[1]==u'02'):
-                    if(i[0]==u'28'):
-                        lista+=[(i)] #jesli luty
-                elif(i[0]<=u'31'):
-                    lista+=[(i)] #jesli inne miesiace
-        return lista
+    # sentences_pattern = r'([\dA-ZĄĆĘŃÓŚŁŻŹ]([A-ZĄĆĘŃÓŚŁŻŹa-ząćęńóśżłź\s,\|\)\/\-\+\=\(\*&^%\$#@!\d]*|(\s[a-zA-Z]{1,3}\.\s))+)'
+    # r = re.compile(sentences_pattern)
+    # sentences_list = r.findall(' '.join(section_P))
+    # sentences_counts = len(sentences_list)
 
-    def poprawnaDataRDM(listaRDM):
-        lista=[]
-        for i in listaRDM:
-            if(u'0'<i[2]<=u'12'): #jesli miesiac ok
-                if(i[2]==u'02' or i[2]==u'02'):
-                    if(i[1]==u'28'):
-                        lista+=[(i)] #jesli luty
-                elif(i[1]<=u'31'):
-                    lista+=[(i)] #jesli inne miesiace
-        return lista
-
-    def kon(listaRDM):
-        i=[]
-        for j in range(len(listaRDM)):
-            i+=[((listaRDM[j][1]),(listaRDM[j][2]),(listaRDM[j][0]))]
-        return i
-
-    def liczbaDat(data, data2):
-        liczba=0
-        lista = data+kon(data2)
-        ilosc=0
-        for i in range(len(lista)):
-            if lista:
-                element = lista.pop()
-                liczba=liczba+1
-                ilosc=lista.count(element)
-                for j in range(ilosc):
-                    lista.remove(element)
-        return liczba
-
+    ###DATES
     # day - month - year
     pattern6 = r'((31[-./](01|03|05|07|08|10|12)[-./]\d\d\d\d)|(((0[1-9])|(1[0-9])|2[0-9])[-./]((0[1-9])|(1[0-2]))[-./]\d\d\d\d)|(30[./](01|03|04|05|06|07|08|09|10|11|12)[-./]\d\d\d\d))'
     r = re.compile(pattern6)
@@ -113,7 +142,6 @@ def processFile(filepath):
     pattern7 = r'(\d\d\d\d[-./]31[-./](01|03|05|07|08|10|12)|(\d\d\d\d[-./]((0[1-9])|(1[0-9])|2[0-9])[-./]((0[1-9])|(1[0-2])))|(\d\d\d\d[./]30[-./](01|03|04|05|06|07|08|09|10|11|12)))'
     r = re.compile(pattern7)
     data2 = r.findall(' '.join(section_P))
-    ###########################################
 
 
     fp.close()
@@ -125,7 +153,7 @@ def processFile(filepath):
     print("liczba skrotow: ", shortcut_counts)
     print("liczba liczb calkowitych z zakresu int: ", integer_counts)
     print("liczba liczb zmiennoprzecinkowych: ", float_counts)
-    print("liczba dat: ", liczbaDat(data,data2))
+    print("liczba dat: ", counts_unique_dates(data,data2))
     print("liczba adresow email:", email_counts)
     print("\n")
 
@@ -145,6 +173,11 @@ for root, dirs, files in tree:
             filepath = os.path.join(root, f)
             processFile(filepath)
 
-
-
-
+# assert parse_sentence("Ala ma kota.") == ['Ala ma kota.']
+# assert parse_sentence("Ala ma kota. Kot ma Ale.") == ['Ala ma kota.', ' Kot ma Ale.']
+# assert parse_sentence("Ala ma kota?! Pies ma asd 0.5 Kot ma Ale!!!") == ['Ala ma kota!', ' Pies ma asd 0.5 Kot ma Ale!']
+# assert parse_sentence("Ala ma kota zl. ") == ['Ala ma kota zl. ']
+# assert parse_sentence("Ala ma kota zl. asdaasa. ") == ['Ala ma kota zl. asdaasa. ']
+# assert parse_sentence("Ala ma@wp.pl kota zl.\n SADAsas ") == ['Ala ma@wp.pl kota zl\n', ' SADAsas ']
+#
+# print parse_sentence("Ala ma@wp.pl kota zl??!\n SADAsas ")
