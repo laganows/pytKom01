@@ -62,6 +62,7 @@ def processFile(filepath):
     sentences_counts = len(sentences_list)
 
     #DATES
+    ###########################################
     def poprawnaDataDMR(listaDMR):
         lista=[]
         for i in listaDMR:
@@ -103,11 +104,12 @@ def processFile(filepath):
                     lista.remove(element)
         return liczba
 
-
+    # day - month - year
     pattern6 = r'((31[-./](01|03|05|07|08|10|12)[-./]\d\d\d\d)|(((0[1-9])|(1[0-9])|2[0-9])[-./]((0[1-9])|(1[0-2]))[-./]\d\d\d\d)|(30[./](01|03|04|05|06|07|08|09|10|11|12)[-./]\d\d\d\d))'
     r = re.compile(pattern6)
     data = r.findall(' '.join(section_P))
 
+    # year - day - month
     pattern7 = r'(\d\d\d\d[-./]31[-./](01|03|05|07|08|10|12)|(\d\d\d\d[-./]((0[1-9])|(1[0-9])|2[0-9])[-./]((0[1-9])|(1[0-2])))|(\d\d\d\d[./]30[-./](01|03|04|05|06|07|08|09|10|11|12)))'
     r = re.compile(pattern7)
     data2 = r.findall(' '.join(section_P))
