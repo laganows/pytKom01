@@ -12,7 +12,7 @@ def multiple_replace(text, mapping):
     return text
 
 def without_empty(values):
-    """Pozbywa się z listy częsci, które składają się np. z samych spacji"""
+    """Pozbywa sie z listy czesci, które składaja sie np. z samych spacji"""
     return [value for value in values if value.strip()]
 
 def replace_emails(text, emails, placeholder="email"):
@@ -22,9 +22,8 @@ def replace_emails(text, emails, placeholder="email"):
     return multiple_replace(text, mapping)
 
 def _get_safe_parts(text):
-    """Ta funkcja dużo uprasza, bo przepuszczając przez nią tekst już nie musimy
-    przejmować !, ? czy \n. Zostaje nam tylko kropka do obsługi.
-    """
+    """Ta funkcja duzo uprasza, bo przepuszczając przez nia tekst już nie musimy
+    przejmowac !, ? czy \n. Zostaje nam tylko kropka do obsługi."""
     return without_empty(re.split('[!?\n]+', text))
 
 def is_ends_with_shortcut(text):
@@ -44,7 +43,7 @@ def parse_sentences(text, emails=None):
                 results.append(buffor)
                 buffor = ""
 
-            buffor += part + '.'  # nie zawsze ta kropka ma sens
+            buffor += part + '.'  
             ends_with_shortcut = is_ends_with_shortcut(part)
 
     results.append(buffor)
@@ -131,7 +130,7 @@ def processFile(filepath):
     shortcut_counts = list_unique_counter(' '.join(section_P), shortcut_pattern)
 
     #FLOATS
-    float_pattern = r' (?:-?(?:(?:\d+\.\d?)|(?:\d*\.\d+))(?:[eE][+-]\d+)?)'
+    float_pattern = r' (?:-?(?:(?:\d+\.\d*)|(?:\d*\.\d+))(?:[eE][+-]\d+)?)'
     float_counts = list_unique_counter(' '.join(section_P), float_pattern)
 
     #INTEGERS
@@ -142,7 +141,7 @@ def processFile(filepath):
     sentences_counts = len(parse_sentences(' '.join(section_P), email_list))
 
     ###DATES
-    # month - year - day
+    # day - month - year
     myd_first_pattern = r'(?:(?:(31)-(01|03|05|07|08|10|12)-(\d\d\d\d))|(?:((?:0[1-9])|(?:1[0-9])|2[0-9])-((?:0[1-9])|(?:1[0-2]))-(\d\d\d\d))|(?:(30)-(01|03|04|05|06|07|08|09|10|11|12)-(\d\d\d\d)))'
     r = re.compile(myd_first_pattern)
     data = r.findall(' '.join(section_P))
